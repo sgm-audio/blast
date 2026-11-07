@@ -161,4 +161,52 @@ describe('generateDraftVariants', () => {
       })
     ).rejects.toBeInstanceOf(VoiceValidationError);
   });
+
+  it('enforces proof-of-work screen-recording rules in the prompt and rewrites unfilmable variants', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const unfilmableFirstPayload = JSON.stringify({
+      variants: [
+        {
+          hook: 'Imagine this running after every push.',
+          spoken:
+            'Imagine this: you push a commit to sgm-audio/blast and a fake dashboard walks through slides of docs/blueprint.md and docs/voice.md automatically. Right now none of the ingest, filtering, or MCP server code actually exists in the project at all.',
+          caption: 'Wrote docs/blueprint.md and docs/voice.md. Pipeline code is not built yet.',
+          targetSeconds: 20,
+        },
+        {
+          hook: 'Building tools solo takes steady patience.',
+          spoken:
+            'Tonight I spent an hour writing down strict rules so my automation stays honest instead of sounding polished and fake. Keeping scope small from day one prevents messy rewrites later, though almost all of the real implementation work remains unfinished.',
+          caption: 'Wrote down strict rules to keep the tool honest. Implementation is still unfinished.',
+          targetSeconds: 20,
+        },
+      ],
+    });
+
+    const fakeClient: InteractionsClientLike = {
+      interactions: {
+        async create(params) {
+          calls.push(params as Record<string, unknown>);
+          return {
+            output_text: calls.length === 1 ? unfilmableFirstPayload : compliantPayload,
+          };
+        },
+      },
+    };
+
+    const result = await generateDraftVariants({
+      event: testEvent,
+      voiceRule: testRule,
+      client: fakeClient,
+    });
+
+    expect(String(calls[0].system_instruction)).toMatch(/screen recording/i);
+    expect(String(calls[0].system_instruction)).toMatch(
+      /IDE, terminal, commit diff, review queue, deploy log, or live app/i
+    );
+    expect(String(calls[0].system_instruction)).toMatch(/no slides/i);
+    expect(calls).toHaveLength(2);
+    expect(String(calls[1].input)).toMatch(/proof-of-work/i);
+    expect(result.variants).toHaveLength(2);
+  });
 });

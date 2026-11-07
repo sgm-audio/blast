@@ -21,6 +21,10 @@ BLAST drafts are written as I would write a post on an audio-dev forum: KVR, the
 - Ask a hook question the script does not answer.
 - Write like an ad or a trailer.
 
+## Proof of work
+
+Every draft must be recordable as a real screen recording. The spoken script and on-screen action must show actual work (IDE, terminal, commit diff, review queue, deploy log, or live app). No slides, no fake dashboards, no abstract diagrams, no "imagine this."
+
 ## Length
 
 - Hook: one sentence, about 3–12 words.

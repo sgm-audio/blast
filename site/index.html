@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hivyr.io / BLAST — Drafts from real commits</title>
+  <meta name="description" content="Turns GitHub activity into short spoken drafts. Nothing posts without review." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --backdrop: #050608;
+      --frame: #08090c;
+      --card: #0a0c10;
+      --hairline: rgba(255, 255, 255, 0.06);
+      --hairline-strong: rgba(255, 255, 255, 0.11);
+      --text: #f3f4f7;
+      --text-body: #a6adbb;
+      --text-muted: #7c8392;
+      --text-dim: #5e6472;
+      --amber: #df9f45;
+      --sans: "Inter", "Segoe UI Variable Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      --display: "Inter", "Segoe UI Variable Display", "Segoe UI Variable Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      --mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--backdrop);
+      color: var(--text);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(960px 440px at 50% -120px, rgba(255, 255, 255, 0.035), transparent 70%),
+        radial-gradient(700px 420px at 78% 88%, rgba(112, 138, 178, 0.03), transparent 72%),
+        var(--backdrop);
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 960px;
+      min-height: min(560px, calc(100dvh - 48px));
+      background: linear-gradient(180deg, #0b0c10 0%, #07080b 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.085),
+        0 42px 96px -28px rgba(0, 0, 0, 0.92),
+        0 0 0 1px rgba(0, 0, 0, 0.72);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .topbar {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 13px;
+      min-width: 0;
+    }
+
+    .emblem {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .brand-names {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13.5px;
+      letter-spacing: -0.005em;
+    }
+
+    .brand-parent {
+      color: var(--text-muted);
+      font-weight: 450;
+    }
+
+    .brand-sep {
+      color: rgba(255, 255, 255, 0.16);
+      user-select: none;
+    }
+
+    .brand-product {
+      position: relative;
+      color: var(--text);
+      font-weight: 560;
+      letter-spacing: 0.03em;
+    }
+
+    .brand-product::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -6px;
+      height: 1.5px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.12));
+    }
+
+    .repo-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 32px;
+      padding: 0 13px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.028);
+      border: 1px solid rgba(255, 255, 255, 0.075);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+      color: #b7becb;
+      font-family: var(--mono);
+      font-size: 11.75px;
+      text-decoration: none;
+      transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+    }
+
+    .repo-pill:hover {
+      background: rgba(255, 255, 255, 0.055);
+      border-color: rgba(255, 255, 255, 0.14);
+      color: var(--text);
+    }
+
+    .repo-pill:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+    }
+
+    .stage-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 28px;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      border-radius: 24px;
+      padding: clamp(36px, 5.5vw, 58px) clamp(28px, 5vw, 54px);
+      background:
+        radial-gradient(220px 180px at 93% 15%, rgba(255, 243, 212, 0.30) 0%, rgba(232, 162, 62, 0.19) 38%, rgba(145, 82, 18, 0.07) 68%, transparent 86%),
+        radial-gradient(420px 250px at 88% 102%, rgba(132, 158, 202, 0.13), transparent 72%),
+        linear-gradient(180deg, #0d0f14 0%, #08090d 100%);
+      border: 1px solid rgba(255, 255, 255, 0.088);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(148, 172, 212, 0.09),
+        0 24px 54px -26px rgba(0, 0, 0, 0.86);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    /* Subtle fluted-glass light refraction in the upper-right corner */
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(255, 234, 192, 0.045) 0px,
+        rgba(255, 234, 192, 0.045) 1px,
+        transparent 1px,
+        transparent 12px
+      );
+      -webkit-mask-image: radial-gradient(280px 220px at 89% 18%, #000 12%, transparent 76%);
+      mask-image: radial-gradient(280px 220px at 89% 18%, #000 12%, transparent 76%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .content {
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-family: var(--display);
+      font-size: clamp(30px, 4.1vw, 44px);
+      font-weight: 520;
+      letter-spacing: -0.028em;
+      line-height: 1.12;
+      color: var(--text);
+    }
+
+    .lead {
+      margin: 0 0 32px;
+      max-width: 42ch;
+      font-size: clamp(15px, 1.35vw, 16.5px);
+      line-height: 1.62;
+      color: var(--text-body);
+      font-weight: 400;
+    }
+
+    .cta {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      height: 44px;
+      padding: 0 24px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #5d687d 0%, #373f4e 100%);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.32),
+        0 10px 24px -8px rgba(0, 0, 0, 0.75);
+      color: #f7f8fb;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 520;
+      letter-spacing: -0.006em;
+      text-decoration: none;
+      transition: background 0.16s ease, border-color 0.16s ease, transform 0.12s ease, box-shadow 0.16s ease;
+    }
+
+    .cta:hover {
+      background: linear-gradient(180deg, #68748b 0%, #40495a 100%);
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.38),
+        0 12px 28px -8px rgba(0, 0, 0, 0.82);
+    }
+
+    .cta:active {
+      transform: translateY(0.5px);
+    }
+
+    .cta:focus-visible {
+      outline: none;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.36),
+        0 0 0 3px rgba(148, 167, 198, 0.32);
+    }
+
+    .cta-arrow {
+      color: rgba(255, 255, 255, 0.78);
+      transition: transform 0.16s ease;
+    }
+
+    .cta:hover .cta-arrow {
+      transform: translateX(2px);
+    }
+
+    .footbar {
+      padding: 16px 28px;
+      border-top: 1px solid var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .secondary {
+      margin: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: -0.004em;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 10px rgba(223, 159, 69, 0.45);
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 12px;
+      }
+
+      .shell {
+        min-height: calc(100dvh - 24px);
+        border-radius: 22px;
+      }
+
+      .topbar {
+        padding: 16px 18px;
+      }
+
+      .repo-pill span {
+        display: none;
+      }
+
+      .stage-wrap {
+        padding: 16px;
+      }
+
+      .stage {
+        padding: 36px 24px;
+        border-radius: 20px;
+      }
+
+      .footbar {
+        padding: 15px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="emblem" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3" y="4" width="5" height="16" rx="1.4" fill="url(#stemGrad)" />
+          <path d="M9.5 4C14.7467 4 19 7.58172 19 12C19 16.4183 14.7467 20 9.5 20V4Z" fill="url(#goldGrad)" />
+          <defs>
+            <linearGradient id="stemGrad" x1="3" y1="4" x2="8" y2="20" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#5B4629" />
+              <stop offset="1" stop-color="#1A150E" />
+            </linearGradient>
+            <linearGradient id="goldGrad" x1="10" y1="4" x2="18" y2="19.5" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#F6D892" />
+              <stop offset="0.55" stop-color="#D7953B" />
+              <stop offset="1" stop-color="#7E4E16" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="brand-names">
+          <span class="brand-parent">Hivyr.io</span>
+          <span class="brand-sep" aria-hidden="true">/</span>
+          <span class="brand-product">BLAST</span>
+        </div>
+      </div>
+
+      <a class="repo-pill" href="https://github.com/sgm-audio/blast" target="_blank" rel="noreferrer" aria-label="GitHub repository sgm-audio/blast">
+        <span>sgm-audio/blast</span>&nearr;
+      </a>
+    </header>
+
+    <main class="stage-wrap">
+      <section class="stage" aria-labelledby="headline">
+        <div class="content">
+          <h1 id="headline">Drafts from real commits.</h1>
+          <p class="lead">Turns GitHub activity into short spoken drafts. Nothing posts without review.</p>
+          <a class="cta" href="https://blast-seven-xi.vercel.app">
+            <span>Open the queue</span>
+            <span class="cta-arrow" aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footbar">
+      <p class="secondary">
+        <span class="dot" aria-hidden="true"></span>
+        <span>Built in public. Still early.</span>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

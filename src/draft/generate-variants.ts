@@ -45,15 +45,15 @@ function buildResponseSchema(rule: VoiceRuleRecord): Record<string, unknown> {
           properties: {
             hook: {
               type: 'string',
-              description: `Single phone-readable sentence (${rule.hook_min_words}-${rule.hook_max_words} words). Specific, dry, no clickbait.`,
+              description: `Single phone-readable sentence (${rule.hook_min_words}-${rule.hook_max_words} words) for a real screen recording. Specific, dry, no clickbait, no slides or "imagine this".`,
             },
             spoken: {
               type: 'string',
-              description: `First-person spoken script (${rule.min_words}-${rule.max_words} words, ~${rule.default_min_seconds}-${rule.default_max_seconds}s). Sayable, names real files/repo, states what is unfinished.`,
+              description: `First-person spoken script (${rule.min_words}-${rule.max_words} words, ~${rule.default_min_seconds}-${rule.default_max_seconds}s) recordable over a real screen capture of actual work (IDE, terminal, commit diff, review queue, deploy log, or live app). Sayable, names real files/repo/surfaces, states what is unfinished. No slides, fake dashboards, abstract diagrams, or "imagine this".`,
             },
             caption: {
               type: 'string',
-              description: '2-4 short factual sentences matching the spoken script. Zero hashtag stuffing.',
+              description: '2-4 short factual sentences matching the spoken script and real on-screen work. Zero hashtag stuffing.',
             },
             targetSeconds: {
               type: 'integer',
@@ -85,6 +85,8 @@ function buildSystemInstruction(rule: VoiceRuleRecord): string {
     `- targetSeconds MUST be an integer between ${rule.default_min_seconds} and ${rule.default_max_seconds}.`,
     `- Max hashtags across hook + spoken + caption: ${rule.max_hashtags} (prefer 0).`,
     `- Banned phrases (never use): ${rule.banned_phrases.join(', ')}.`,
+    '- Proof of work: Every draft MUST be recordable as a real screen recording. The spoken script and on-screen action MUST show actual work (IDE, terminal, commit diff, review queue, deploy log, or live app).',
+    '- No slides, no fake dashboards, no abstract diagrams, no flowcharts/whiteboards/mockups, and no "imagine this" or "picture this" framing (never use those concepts or words).',
     '- NEVER invent features, metrics, benchmarks, user counts, or deploy URLs not present in the event.',
     '- If deployUrl is null, explicitly avoid claiming anything is deployed.',
     '- If the commit is small or docs-only, state that plainly.',
@@ -102,7 +104,7 @@ function buildEventInput(
   }));
 
   const sections = [
-    'Write 2-3 TikTok draft variants strictly from this verified ProgressEvent and file diff:',
+    'Write 2-3 real-screen-recordable TikTok draft variants strictly from this verified ProgressEvent and file diff:',
     '',
     'ProgressEvent JSON:',
     JSON.stringify(event, null, 2),

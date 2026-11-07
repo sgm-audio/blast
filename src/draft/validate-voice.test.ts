@@ -110,4 +110,56 @@ describe('validateDraftVariants', () => {
     expect(res.valid).toBe(false);
     expect(res.errors.join(' ')).toMatch(/invented URL/i);
   });
+
+  it('rejects variants that use slides, fake dashboards, abstract diagrams, or "imagine this"', () => {
+    const slidesVariant = makeValidVariant({
+      hook: 'Three slides on what changed tonight.',
+      spoken:
+        'I made three slides walking through docs/blueprint.md and docs/voice.md in sgm-audio/blast tonight. The first slide covers commit ingestion, the next slide covers voice filtering, and none of the pipeline or MCP server code is built or deployed yet.',
+    });
+    const fakeDashboardVariant = makeValidVariant({
+      hook: 'Mocked a clean view for commits.',
+      spoken:
+        'Here is a fake dashboard showing how sgm-audio/blast will track docs/blueprint.md and docs/voice.md once the full pipeline exists. Right now only those two specification files are checked in, and none of the ingest or review code is built yet.',
+    });
+    const abstractDiagramVariant = makeValidVariant({
+      hook: 'Drew an abstract diagram of BLAST.',
+      spoken:
+        'I drew an abstract diagram of how sgm-audio/blast turns commits into scripts based on docs/blueprint.md and docs/voice.md. The boxes show ingest, filtering, and human approval, while the actual pipeline code and Vercel deployment still do not exist right now.',
+    });
+    const imagineThisVariant = makeValidVariant({
+      hook: 'Imagine this running after every push.',
+      spoken:
+        'Imagine this: you push a commit to sgm-audio/blast and a draft script is waiting for you automatically. Tonight I only wrote docs/blueprint.md and docs/voice.md, so none of the ingest, filtering, or MCP server code actually exists at all right now.',
+    });
+
+    for (const unfilmable of [
+      slidesVariant,
+      fakeDashboardVariant,
+      abstractDiagramVariant,
+      imagineThisVariant,
+    ]) {
+      const res = validateDraftVariants([unfilmable, makeValidVariant()], sampleEvent, baseRule);
+      expect(res.valid).toBe(false);
+      expect(res.errors.join(' ')).toMatch(/proof-of-work|screen/i);
+    }
+  });
+
+  it('rejects spoken scripts that cannot be anchored to actual on-screen work', () => {
+    const unanchoredTalkingHead = makeValidVariant({
+      hook: 'Building tools solo takes steady patience.',
+      spoken:
+        'Tonight I spent an hour writing down strict either/or rules so my 24/7 automation stays honest instead of sounding polished and fake. Keeping scope small from day one prevents messy rewrites later, though almost all real implementation work remains unfinished.',
+      caption:
+        'Wrote down strict rules to keep the tool honest. Implementation is still unfinished.',
+    });
+
+    const res = validateDraftVariants(
+      [unanchoredTalkingHead, makeValidVariant()],
+      sampleEvent,
+      baseRule
+    );
+    expect(res.valid).toBe(false);
+    expect(res.errors.join(' ')).toMatch(/proof-of-work|on-screen/i);
+  });
 });

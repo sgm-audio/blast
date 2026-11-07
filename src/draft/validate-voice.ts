@@ -26,6 +26,105 @@ function countHashtags(text: string): number {
   return matches ? matches.length : 0;
 }
 
+const NON_SCREEN_FRAMING_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
+  {
+    pattern:
+      /\b(?:slides|slide\s*decks?|slideshows?|powerpoint|keynote|(?:this|next|first|title)\s+slide)\b/i,
+    label: 'slides',
+  },
+  {
+    pattern: /\b(?:fake|mock(?:ed)?|placeholder|concept|simulated)\s+dashboards?\b/i,
+    label: 'fake dashboard',
+  },
+  {
+    pattern: /\b(?:mockups?|wireframes?|concept\s+(?:ui|screens?))\b/i,
+    label: 'mockup/wireframe',
+  },
+  {
+    pattern: /\b(?:abstract|architecture|system)\s+diagrams?\b/i,
+    label: 'abstract diagram',
+  },
+  {
+    pattern: /\b(?:flowcharts?|whiteboards?)\b/i,
+    label: 'diagram/whiteboard',
+  },
+  {
+    pattern: /\b(?:imagine\s+this|picture\s+this|visualize\s+this|imagine)\b/i,
+    label: 'imagine this',
+  },
+  {
+    pattern: /\b(?:b-roll|stock\s+(?:footage|video))\b/i,
+    label: 'non-screen footage',
+  },
+];
+
+const SCREEN_WORK_SURFACE_PATTERN =
+  /\b(?:ide|editor|vs\s*code|cursor|neovim|vim|terminal|cli|shell|stdout|stderr|commits?|diffs?|patches|pull\s+requests?|review\s+queue|deploy\s+logs?|build\s+logs?|deployments?|deploys?|deployed|live\s+app|localhost(?::\d+)?)\b/i;
+
+const INLINE_ARTIFACT_PATTERN =
+  /(?:https?:\/\/\S+|\b[a-z0-9_./-]+\.(?:ts|tsx|js|jsx|mjs|cjs|json|md|sql|py|rs|go|cpp|c|h|hpp|css|html|yaml|yml|toml)\b|\b(?:npm|pnpm|yarn|npx|tsx|git|vitest|tsc)\s+[a-z0-9:_-]+)/i;
+
+function findNonScreenFraming(text: string, event: BLASTProgressEvent): string | null {
+  for (const { pattern, label } of NON_SCREEN_FRAMING_PATTERNS) {
+    if (pattern.test(text)) {
+      return label;
+    }
+  }
+
+  const cleanedTitle = event.title
+    .toLowerCase()
+    .replace(
+      /\b(?:no|ban|bans|reject|rejects|fake|mock(?:ed)?|abstract)\s+(?:fake\s+|abstract\s+)?(?:dashboards?|diagrams?)\b/g,
+      ''
+    );
+  const eventSourceText = [cleanedTitle, ...event.files.map((f) => f.path.toLowerCase())].join(' ');
+
+  if (/\bdashboards?\b/i.test(text) && !eventSourceText.includes('dashboard')) {
+    return 'fake dashboard';
+  }
+
+  if (/\bdiagrams?\b/i.test(text) && !eventSourceText.includes('diagram')) {
+    return 'abstract diagram';
+  }
+
+  return null;
+}
+
+function hasRecordableScreenAnchor(spoken: string, event: BLASTProgressEvent): boolean {
+  if (SCREEN_WORK_SURFACE_PATTERN.test(spoken) || INLINE_ARTIFACT_PATTERN.test(spoken)) {
+    return true;
+  }
+
+  const lower = spoken.toLowerCase();
+  if (event.repo && lower.includes(event.repo.toLowerCase())) {
+    return true;
+  }
+  if (event.sha && event.sha.length >= 7 && lower.includes(event.sha.slice(0, 7).toLowerCase())) {
+    return true;
+  }
+  if (event.deployUrl) {
+    const cleanDeploy = event.deployUrl
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/+$/, '')
+      .toLowerCase();
+    if (cleanDeploy && lower.includes(cleanDeploy)) {
+      return true;
+    }
+  }
+  for (const file of event.files) {
+    const fullPath = file.path.toLowerCase();
+    if (lower.includes(fullPath)) {
+      return true;
+    }
+    const base = fullPath.split('/').pop() ?? '';
+    if (base.includes('.') && base.length >= 4 && lower.includes(base)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function validateDraftVariants(
   variants: DraftVariantInput[],
   event: BLASTProgressEvent,
@@ -94,6 +193,19 @@ export function validateDraftVariants(
       if (!allowedUrls.has(cleaned)) {
         errors.push(`${label}: contains invented URL "${rawUrl}" not present in the progress event.`);
       }
+    }
+
+    const nonScreenFraming = findNonScreenFraming(combined, event);
+    if (nonScreenFraming) {
+      errors.push(
+        `${label}: fails proof-of-work screen-recording rule (contains "${nonScreenFraming}"; show actual work in IDE, terminal, commit diff, review queue, deploy log, or live app instead).`
+      );
+    }
+
+    if (!hasRecordableScreenAnchor(v.spoken, event)) {
+      errors.push(
+        `${label}: fails proof-of-work screen-recording rule (spoken script must reference actual on-screen work: IDE, terminal, commit diff, review queue, deploy log, or live app).`
+      );
     }
   });
 
