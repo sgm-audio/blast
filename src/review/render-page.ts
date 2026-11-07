@@ -26,13 +26,13 @@ function safeExternalUrl(raw: string | null | undefined): string | null {
 function formatStatusLabel(status: DraftStatus): string {
   switch (status) {
     case 'pending_review':
-      return 'pending review';
+      return 'Pending review';
     case 'approved':
-      return 'approved';
+      return 'Approved';
     case 'rejected':
-      return 'killed';
+      return 'Killed';
     case 'needs_rewrite':
-      return 'needs rewrite';
+      return 'Needs rewrite';
   }
 }
 
@@ -47,13 +47,13 @@ function renderFilesSummary(draft: DraftRecord): string {
   const files = draft.event?.files ?? [];
   if (files.length === 0) return '';
 
-  const preview = files.slice(0, 4).map((f) => `<code>${escapeHtml(f.path)}</code>`);
+  const preview = files.slice(0, 4).map((f) => `<code class="file-chip">${escapeHtml(f.path)}</code>`);
   const remaining = files.length - preview.length;
   if (remaining > 0) {
     preview.push(`<span class="files-more">+${remaining} more</span>`);
   }
 
-  return `<div class="draft-files">${preview.join('<span class="sep">&middot;</span>')}</div>`;
+  return `<div class="draft-files">${preview.join('')}</div>`;
 }
 
 function renderExportPanel(draft: DraftRecord): string {
@@ -74,10 +74,13 @@ function renderExportPanel(draft: DraftRecord): string {
   return `
     <section class="export-panel" aria-label="Approved plain-text export">
       <div class="export-bar">
-        <span class="export-label">Approved export &middot; plain text</span>
+        <span class="export-label">
+          <span class="dot dot-approved"></span>
+          Approved export &middot; plain text
+        </span>
         <div class="export-actions">
-          <button type="button" class="btn btn-subtle" data-copy-target="${escapeHtml(exportDomId)}">Copy text</button>
-          <a class="btn btn-subtle" href="${exportHref}" target="_blank" rel="noreferrer">Export raw text &nearr;</a>
+          <button type="button" class="btn btn-pill-subtle" data-copy-target="${escapeHtml(exportDomId)}">Copy text</button>
+          <a class="btn btn-pill-subtle" href="${exportHref}" target="_blank" rel="noreferrer">Export raw text &nearr;</a>
         </div>
       </div>
       <pre id="${escapeHtml(exportDomId)}" class="export-pre">${escapeHtml(exportText)}</pre>
@@ -93,18 +96,18 @@ function renderDraftCard(draft: DraftRecord): string {
   const timestamp = formatTimestamp(draft.event?.timestamp ?? draft.created_at);
 
   const metaItems: string[] = [];
-  if (repo) metaItems.push(`<span>${escapeHtml(repo)}</span>`);
+  if (repo) metaItems.push(`<span class="meta-item">${escapeHtml(repo)}</span>`);
   if (shortSha) {
-    metaItems.push(`<code>${escapeHtml(shortSha)}</code>`);
+    metaItems.push(`<code class="meta-sha">${escapeHtml(shortSha)}</code>`);
   } else {
-    metaItems.push(`<code>${escapeHtml(draft.event_id)}</code>`);
+    metaItems.push(`<code class="meta-sha">${escapeHtml(draft.event_id)}</code>`);
   }
   if (fileCount > 0) {
-    metaItems.push(`<span>${fileCount} ${fileCount === 1 ? 'file' : 'files'}</span>`);
+    metaItems.push(`<span class="meta-item">${fileCount} ${fileCount === 1 ? 'file' : 'files'}</span>`);
   }
-  metaItems.push(`<span>${escapeHtml(draft.model_used)}</span>`);
+  metaItems.push(`<span class="meta-item">${escapeHtml(draft.model_used)}</span>`);
   if (timestamp) {
-    metaItems.push(`<span>${escapeHtml(timestamp)}</span>`);
+    metaItems.push(`<span class="meta-mono meta-time">${escapeHtml(timestamp)}</span>`);
   }
 
   const variantCards = draft.variants
@@ -118,9 +121,9 @@ function renderDraftCard(draft: DraftRecord): string {
           <div class="variant-head">
             <span class="variant-title">Variant ${v.variant_index}</span>
             <div class="variant-badges">
-              <span class="meta-mono">${v.targetSeconds}s &middot; ${v.spoken_word_count}w</span>
-              ${v.edited_by_human ? '<span class="pill pill-edited">edited</span>' : ''}
-              ${isApproved ? '<span class="pill pill-approved">approved</span>' : ''}
+              <span class="metric-pill meta-mono">${v.targetSeconds}s &middot; ${v.spoken_word_count}w</span>
+              ${v.edited_by_human ? '<span class="pill"><span class="dot dot-edited"></span>Edited</span>' : ''}
+              ${isApproved ? '<span class="pill pill-approved"><span class="dot dot-approved"></span>Approved</span>' : ''}
             </div>
           </div>
 
@@ -141,7 +144,7 @@ function renderDraftCard(draft: DraftRecord): string {
 
           <div class="variant-actions">
             <details class="edit-disclosure">
-              <summary class="btn btn-ghost edit-summary">Edit</summary>
+              <summary class="btn btn-edit edit-summary">Edit</summary>
               <form class="edit-form" method="POST" action="${editAction}">
                 <label class="form-field">
                   <span class="form-label">Hook</span>
@@ -163,7 +166,7 @@ function renderDraftCard(draft: DraftRecord): string {
                     <span class="form-label">Target (s)</span>
                     <input type="number" name="targetSeconds" min="5" max="120" value="${v.targetSeconds}" required />
                   </label>
-                  <button type="submit" class="btn btn-secondary">Save Edit</button>
+                  <button type="submit" class="btn btn-save">Save Edit</button>
                 </div>
               </form>
             </details>
@@ -181,7 +184,7 @@ function renderDraftCard(draft: DraftRecord): string {
 
   const killNotice =
     draft.status === 'rejected' && draft.rejected_reason
-      ? `<p class="killed-reason">Killed: ${escapeHtml(draft.rejected_reason)}</p>`
+      ? `<p class="killed-reason"><span class="dot dot-killed"></span>Killed: ${escapeHtml(draft.rejected_reason)}</p>`
       : '';
 
   const killAction = `/api/drafts/${encodeURIComponent(draft.id)}/kill`;
@@ -194,7 +197,7 @@ function renderDraftCard(draft: DraftRecord): string {
             <span class="status-badge status-badge-${escapeHtml(draft.status)}">
               <span class="dot"></span>${escapeHtml(formatStatusLabel(draft.status))}
             </span>
-            ${metaItems.join('<span class="sep">&middot;</span>')}
+            ${metaItems.join('<span class="sep" aria-hidden="true">&middot;</span>')}
           </div>
           <h2 class="draft-title">${escapeHtml(title)}</h2>
           ${renderFilesSummary(draft)}
@@ -202,7 +205,7 @@ function renderDraftCard(draft: DraftRecord): string {
         </div>
         ${
           sourceUrl
-            ? `<div class="draft-header-side"><a class="btn btn-subtle" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">Source commit &nearr;</a></div>`
+            ? `<div class="draft-header-side"><a class="btn btn-pill-subtle" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">Source commit &nearr;</a></div>`
             : ''
         }
       </div>
@@ -225,60 +228,213 @@ function renderDraftCard(draft: DraftRecord): string {
 const STYLES = `
 :root {
   color-scheme: dark;
-  --bg: #0d0f12;
-  --surface: #151920;
-  --surface-variant: #191e27;
-  --surface-inset: #0f1217;
-  --border: #262c36;
-  --border-strong: #353d4b;
-  --text: #e6e9ef;
-  --text-muted: #a0a8b7;
-  --text-dim: #6c7689;
-  --approve: #238636;
-  --approve-hover: #2ea043;
-  --approve-border: rgba(46, 160, 67, 0.45);
-  --approve-bg: rgba(46, 160, 67, 0.1);
-  --pending: #d29922;
-  --pending-bg: rgba(210, 153, 34, 0.12);
-  --kill: #d9655f;
-  --kill-bg: rgba(217, 101, 95, 0.12);
-  --edited: #6ea8fe;
-  --edited-bg: rgba(110, 168, 254, 0.12);
-  --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --bg: #08090b;
+  --surface: #101216;
+  --surface-elevated: #16191f;
+  --surface-elevated-bottom: #12151a;
+  --surface-inset: #0b0c0f;
+  --pill-bg: rgba(255, 255, 255, 0.05);
+  --pill-border: rgba(255, 255, 255, 0.065);
+  --hairline: rgba(255, 255, 255, 0.055);
+  --hairline-strong: rgba(255, 255, 255, 0.11);
+  --top-shine: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --text: #f3f4f7;
+  --text-body: #c9ced8;
+  --text-muted: #8b919f;
+  --text-dim: #666c7a;
+  --dot-pending: #df9f45;
+  --dot-approved: #48c385;
+  --dot-killed: #df6f68;
+  --dot-edited: #6ea3f5;
+  --sans: "Inter", "Segoe UI Variable Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --display: "Inter", "Segoe UI Variable Display", "Segoe UI Variable Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
+html {
+  background: var(--bg);
+}
+
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 480px at 50% -180px, rgba(255, 255, 255, 0.028), transparent 70%),
+    var(--bg);
   color: var(--text);
   font-family: var(--sans);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-code, pre, .meta-mono {
+code, pre, .meta-mono, .meta-sha {
   font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .topbar {
+  border-bottom: 1px solid var(--hairline);
+  background: rgba(8, 9, 11, 0.84);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(13, 15, 18, 0.92);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--border);
 }
 
 .topbar-inner {
-  max-width: 1220px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 12px 24px;
+  padding: 16px 32px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-mark-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-emblem {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #221f1a 0%, #131210 100%);
+  border: 1px solid rgba(223, 159, 69, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 224, 178, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-emblem::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e5b162 0%, #b88238 100%);
+}
+
+.brand {
+  font-family: var(--display);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.topbar-subtitle {
+  font-size: 13px;
+  font-weight: 450;
+  color: var(--text-muted);
+}
+
+.gate-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #111318;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: var(--top-shine);
+  font-size: 12.5px;
+  font-weight: 450;
+  color: #b4bac7;
+}
+
+.gate-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dot-pending);
+  flex-shrink: 0;
+}
+
+.container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 32px 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.overview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.overview-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.overview-eyebrow {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: -0.005em;
+}
+
+.overview-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 550;
+  letter-spacing: -0.024em;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.overview-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+
+.overview-total-num {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 550;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.overview-strip {
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -286,45 +442,30 @@ code, pre, .meta-mono {
   gap: 12px;
 }
 
-.brand-group {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.brand {
-  font-family: var(--mono);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--text);
-}
-
-.subtitle {
-  color: var(--text-dim);
+.overview-strip-label {
   font-size: 13px;
-}
-
-.topbar-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px;
-  font-family: var(--mono);
-  font-size: 12px;
   color: var(--text-muted);
 }
 
 .counts {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .count-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #d2d6e0;
+  font-variant-numeric: tabular-nums;
 }
 
 .dot {
@@ -333,62 +474,61 @@ code, pre, .meta-mono {
   border-radius: 50%;
   background: var(--text-dim);
   display: inline-block;
+  flex-shrink: 0;
 }
 
 .dot-pending, .status-badge-pending_review .dot {
-  background: var(--pending);
+  background: var(--dot-pending);
 }
 
 .dot-approved, .status-badge-approved .dot {
-  background: #3fb950;
+  background: var(--dot-approved);
 }
 
 .dot-killed, .status-badge-rejected .dot {
-  background: var(--kill);
+  background: var(--dot-killed);
 }
 
-.gate-note {
-  color: var(--text-dim);
-  padding-left: 14px;
-  border-left: 1px solid var(--border);
-}
-
-.container {
-  max-width: 1220px;
-  margin: 0 auto;
-  padding: 24px 24px 72px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.dot-edited {
+  background: var(--dot-edited);
 }
 
 .empty-state {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 36px 24px;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--top-shine), 0 24px 48px -24px rgba(0, 0, 0, 0.75);
+  border-radius: 26px;
+  padding: 56px 32px;
   text-align: center;
   color: var(--text-muted);
+  font-size: 14.5px;
 }
 
 .empty-state code {
-  background: var(--surface-inset);
-  border: 1px solid var(--border);
-  padding: 2px 6px;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 3px 9px;
+  border-radius: 999px;
   color: var(--text);
+  font-size: 13px;
+}
+
+.draft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
 }
 
 .draft-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 28px;
+  box-shadow: var(--top-shine), 0 26px 56px -28px rgba(0, 0, 0, 0.82);
   overflow: hidden;
 }
 
 .draft-card.status-rejected {
-  opacity: 0.72;
-  transition: opacity 0.15s ease;
+  opacity: 0.68;
+  transition: opacity 0.2s ease;
 }
 
 .draft-card.status-rejected:hover,
@@ -397,13 +537,13 @@ code, pre, .meta-mono {
 }
 
 .draft-header {
-  padding: 18px 20px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 28px 30px 24px;
+  border-bottom: 1px solid var(--hairline);
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
 }
 
 .draft-header-main {
@@ -415,112 +555,113 @@ code, pre, .meta-mono {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text-dim);
-  margin-bottom: 6px;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
 }
 
-.draft-meta code {
-  color: var(--text-muted);
+.meta-sha {
+  font-size: 12px;
+  color: #b7bdca;
+}
+
+.meta-time {
+  font-size: 11.5px;
+  color: var(--text-dim);
 }
 
 .sep {
-  color: var(--border-strong);
+  color: rgba(255, 255, 255, 0.18);
+  user-select: none;
 }
 
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
+  gap: 7px;
+  padding: 4px 12px;
   border-radius: 999px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  background: var(--surface-inset);
-}
-
-.status-badge-pending_review {
-  color: #e3b341;
-  background: var(--pending-bg);
-  border-color: rgba(210, 153, 34, 0.35);
-}
-
-.status-badge-approved {
-  color: #56d364;
-  background: var(--approve-bg);
-  border-color: var(--approve-border);
-}
-
-.status-badge-rejected {
-  color: var(--kill);
-  background: var(--kill-bg);
-  border-color: rgba(217, 101, 95, 0.3);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  color: #d8dce5;
 }
 
 .draft-title {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.35;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 540;
+  letter-spacing: -0.018em;
+  line-height: 1.32;
   color: var(--text);
 }
 
 .draft-files {
-  margin-top: 8px;
+  margin-top: 14px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: var(--text-dim);
 }
 
-.draft-files code {
+.file-chip {
   font-size: 11.5px;
-  color: var(--text-muted);
-  background: var(--surface-inset);
-  border: 1px solid var(--border);
-  padding: 1px 6px;
-  border-radius: 4px;
+  color: #9ea4b3;
+  background: rgba(255, 255, 255, 0.038);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.files-more {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding-left: 4px;
 }
 
 .killed-reason {
-  margin: 8px 0 0;
-  font-size: 12.5px;
-  color: var(--kill);
-  font-family: var(--mono);
+  margin: 12px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(223, 111, 104, 0.08);
+  border: 1px solid rgba(223, 111, 104, 0.2);
+  font-size: 12px;
+  color: #e59893;
 }
 
 .export-panel {
-  margin: 16px 20px 0;
+  margin: 24px 30px 0;
   background: var(--surface-inset);
-  border: 1px solid var(--approve-border);
-  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
   overflow: hidden;
 }
 
 .export-bar {
-  padding: 8px 12px;
-  background: var(--approve-bg);
-  border-bottom: 1px solid var(--approve-border);
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.018);
+  border-bottom: 1px solid var(--hairline);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
 .export-label {
-  font-family: var(--mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #56d364;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #cfd4df;
 }
 
 .export-actions {
@@ -531,139 +672,156 @@ code, pre, .meta-mono {
 
 .export-pre {
   margin: 0;
-  padding: 12px 14px;
+  padding: 18px 20px;
   font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--text);
+  line-height: 1.65;
+  color: #c8cdd8;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 
 .variants-grid {
-  padding: 16px 20px;
+  padding: 24px 30px 26px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 18px;
   align-items: stretch;
 }
 
+.variants-grid:has(.edit-disclosure[open]) {
+  align-items: start;
+}
+
 .variant-card {
-  background: var(--surface-variant);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 14px 16px;
+  min-width: 0;
+  background: linear-gradient(180deg, #181b22 0%, #13151b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.062);
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 14px 30px -18px rgba(0, 0, 0, 0.72);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
 }
 
 .variant-card.is-approved {
-  border-color: var(--approve-border);
-  box-shadow: inset 0 0 0 1px rgba(46, 160, 67, 0.18);
+  background:
+    radial-gradient(90% 55% at 50% 0%, rgba(72, 195, 133, 0.075), transparent 72%),
+    linear-gradient(180deg, #191d24 0%, #13161c 100%);
+  border-color: rgba(255, 255, 255, 0.095);
+  box-shadow: inset 0 1px 0 rgba(144, 232, 186, 0.16), 0 16px 34px -18px rgba(0, 0, 0, 0.78);
 }
 
 .variant-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.048);
 }
 
 .variant-title {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 15.5px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
   color: var(--text);
 }
 
 .variant-badges {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+}
+
+.metric-pill {
   font-size: 11.5px;
-  color: var(--text-dim);
+  color: #9ba1b0;
+  background: rgba(255, 255, 255, 0.042);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  padding: 3px 10px;
+  border-radius: 999px;
 }
 
 .pill {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-
-.pill-edited {
-  color: var(--edited);
-  background: var(--edited-bg);
-  border: 1px solid rgba(110, 168, 254, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #d4d8e2;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  padding: 3px 10px;
+  border-radius: 999px;
 }
 
 .pill-approved {
-  color: #56d364;
-  background: var(--approve-bg);
-  border: 1px solid var(--approve-border);
+  background: rgba(72, 195, 133, 0.09);
+  border-color: rgba(72, 195, 133, 0.22);
+  color: #cbeed9;
 }
 
 .variant-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   flex: 1;
 }
 
 .field-block {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
 }
 
 .field-caption {
-  padding-top: 10px;
-  border-top: 1px dashed var(--border);
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
 }
 
 .field-label {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: 11.5px;
+  font-weight: 450;
   color: var(--text-dim);
+  letter-spacing: 0.01em;
 }
 
 .hook-text {
   margin: 0;
-  font-size: 14.5px;
-  font-weight: 600;
-  line-height: 1.4;
+  font-size: 15.5px;
+  font-weight: 540;
+  line-height: 1.44;
+  letter-spacing: -0.008em;
   color: var(--text);
 }
 
 .spoken-text {
   margin: 0;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--text);
+  font-size: 13.75px;
+  line-height: 1.68;
+  color: var(--text-body);
   white-space: pre-wrap;
 }
 
 .caption-text {
   margin: 0;
-  font-size: 12.5px;
-  line-height: 1.5;
+  font-size: 12.75px;
+  line-height: 1.56;
   color: var(--text-muted);
   white-space: pre-wrap;
 }
 
 .variant-actions {
   margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.048);
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 8px;
+  gap: 10px;
   align-items: start;
 }
 
@@ -685,66 +843,70 @@ code, pre, .meta-mono {
 }
 
 .edit-disclosure[open] .edit-summary {
-  margin-bottom: 10px;
-  border-color: var(--border-strong);
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--hairline-strong);
   color: var(--text);
 }
 
 .edit-disclosure[open] .edit-summary::after {
-  content: " (close)";
-  color: var(--text-dim);
+  content: " · Close";
+  color: var(--text-muted);
   font-weight: 400;
 }
 
 .edit-form {
   background: var(--surface-inset);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 4px;
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .form-field-inline {
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .form-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 450;
+  color: var(--text-muted);
 }
 
 input[type="text"],
 input[type="number"],
 textarea {
   width: 100%;
-  background: var(--bg);
+  appearance: none;
+  background: #13161c;
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 12px;
+  padding: 9px 12px;
   font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.5;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 input[type="number"] {
-  width: 72px;
+  width: 78px;
   font-family: var(--mono);
+  text-align: center;
 }
 
 textarea {
@@ -754,14 +916,17 @@ textarea {
 input:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--border-strong);
+  background: #161a21;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
 }
 
 .edit-form-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
+  padding-top: 2px;
 }
 
 .approve-form {
@@ -773,74 +938,131 @@ textarea:focus {
 }
 
 .btn {
+  appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--surface-inset);
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1a1d24;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   color: var(--text);
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
+  letter-spacing: -0.005em;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
 .btn:hover {
-  border-color: var(--border-strong);
-  background: #1d232e;
+  background: #222630;
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
-.btn-ghost {
-  background: transparent;
-  color: var(--text-muted);
+.btn:active {
+  transform: translateY(0.5px);
 }
 
-.btn-subtle {
-  height: 28px;
-  padding: 0 10px;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  color: var(--text-muted);
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
 }
 
-.btn-secondary {
-  background: #212733;
-  border-color: var(--border-strong);
+.btn-pill-subtle {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #171a20;
+  border-color: rgba(255, 255, 255, 0.075);
+  color: #cfd4df;
+}
+
+.btn-pill-subtle:hover {
+  background: #20242d;
+  color: var(--text);
+}
+
+.btn-edit {
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.042);
+  border-color: rgba(255, 255, 255, 0.075);
+  color: #c7ccd7;
+}
+
+.btn-edit:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.13);
+  color: var(--text);
+}
+
+.btn-save {
+  height: 36px;
+  padding: 0 18px;
+  background: linear-gradient(180deg, #3c4352 0%, #282d38 100%);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 14px -4px rgba(0, 0, 0, 0.5);
+  color: #f6f7fa;
+  font-weight: 550;
+}
+
+.btn-save:hover {
+  background: linear-gradient(180deg, #464e5f 0%, #303643 100%);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
 }
 
 .btn-approve {
-  background: var(--approve);
-  border-color: rgba(240, 246, 252, 0.12);
-  color: #ffffff;
-  font-weight: 600;
+  background: linear-gradient(180deg, #383f4d 0%, #252a34 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 18px -6px rgba(0, 0, 0, 0.55);
+  color: #f5f7fa;
+  font-weight: 550;
 }
 
 .btn-approve:hover {
-  background: var(--approve-hover);
-  border-color: rgba(240, 246, 252, 0.22);
+  background: linear-gradient(180deg, #434b5c 0%, #2d3340 100%);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.draft-card.status-approved .btn-approve {
+  background: linear-gradient(180deg, #252933 0%, #1a1d24 100%);
+  border-color: rgba(255, 255, 255, 0.085);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 4px 12px rgba(0, 0, 0, 0.35);
+  color: #d4d9e3;
+  font-weight: 500;
+}
+
+.draft-card.status-approved .btn-approve:hover {
+  background: linear-gradient(180deg, #2f3542 0%, #21252f 100%);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #f5f7fa;
 }
 
 .btn-approved-current {
-  background: var(--approve-bg);
-  border-color: var(--approve-border);
-  color: #56d364;
+  background: linear-gradient(180deg, rgba(72, 195, 133, 0.18) 0%, rgba(72, 195, 133, 0.09) 100%);
+  border-color: rgba(72, 195, 133, 0.32);
+  box-shadow: inset 0 1px 0 rgba(154, 236, 194, 0.16);
+  color: #a9ecc7;
+  font-weight: 500;
 }
 
 .btn-approved-current:hover {
-  background: rgba(46, 160, 67, 0.18);
-  border-color: var(--approve-border);
+  background: linear-gradient(180deg, rgba(72, 195, 133, 0.24) 0%, rgba(72, 195, 133, 0.13) 100%);
+  border-color: rgba(72, 195, 133, 0.42);
+  color: #c3f3d8;
 }
 
 .draft-footer {
-  padding: 10px 20px;
-  background: rgba(10, 12, 16, 0.45);
-  border-top: 1px solid var(--border);
+  padding: 16px 30px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
+  background: rgba(8, 9, 11, 0.28);
 }
 
 .kill-form {
@@ -849,44 +1071,73 @@ textarea:focus {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
 }
 
-.kill-input {
+input[type="text"].kill-input {
   max-width: 280px;
-  height: 30px;
-  font-size: 12px;
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 999px;
+  font-size: 12.5px;
   background: var(--surface-inset);
+  border-color: rgba(255, 255, 255, 0.065);
+}
+
+input[type="text"].kill-input::placeholder {
+  color: var(--text-dim);
 }
 
 .btn-kill {
-  height: 30px;
-  background: transparent;
-  border-color: var(--border);
-  color: var(--text-dim);
-  font-size: 12px;
+  height: 36px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.038);
+  border-color: rgba(255, 255, 255, 0.075);
+  color: var(--text-muted);
+  font-size: 12.5px;
 }
 
 .btn-kill:hover {
-  background: var(--kill-bg);
-  border-color: rgba(217, 101, 95, 0.4);
-  color: var(--kill);
+  background: rgba(223, 111, 104, 0.13);
+  border-color: rgba(223, 111, 104, 0.32);
+  color: #ef958f;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .topbar-inner,
   .container {
-    padding-left: 14px;
-    padding-right: 14px;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .container {
+    padding-top: 28px;
+    gap: 28px;
   }
   .gate-note {
-    padding-left: 0;
-    border-left: none;
+    font-size: 11.5px;
+    padding: 6px 11px;
+  }
+  .topbar-divider,
+  .topbar-subtitle {
+    display: none;
+  }
+  .overview-title {
+    font-size: 25px;
+  }
+  .draft-header,
+  .variants-grid,
+  .draft-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .export-panel {
+    margin-left: 20px;
+    margin-right: 20px;
   }
   .kill-form {
     justify-content: stretch;
   }
-  .kill-input {
+  input[type="text"].kill-input {
     max-width: none;
     flex: 1;
   }
@@ -939,7 +1190,7 @@ export function renderReviewPage(drafts: DraftRecord[]): string {
   const content =
     drafts.length === 0
       ? `<div class="empty-state">No drafts in Supabase yet. Run <code>npm run sync</code> to ingest a commit.</div>`
-      : drafts.map(renderDraftCard).join('\n');
+      : `<div class="draft-list">${drafts.map(renderDraftCard).join('\n')}</div>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -953,23 +1204,43 @@ export function renderReviewPage(drafts: DraftRecord[]): string {
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-group">
-        <span class="brand">BLAST</span>
-        <span class="sep">/</span>
-        <span class="subtitle">review queue</span>
+        <span class="brand-mark-wrap">
+          <span class="brand-emblem" aria-hidden="true"></span>
+          <span class="brand">BLAST</span>
+        </span>
+        <span class="topbar-divider" aria-hidden="true"></span>
+        <span class="topbar-subtitle">Review Queue</span>
       </div>
-      <div class="topbar-meta">
+      <div class="gate-note">
+        <span class="gate-dot" aria-hidden="true"></span>
+        <span>Manual gate &middot; nothing posts automatically</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="overview-section" aria-label="Queue summary">
+      <div class="overview-hero">
+        <div>
+          <p class="overview-eyebrow">Local approval gate</p>
+          <h1 class="overview-title">Review Queue</h1>
+        </div>
+        <div class="overview-total">
+          <span class="overview-total-num">${drafts.length}</span>
+          <span>${drafts.length === 1 ? 'draft set' : 'draft sets'}</span>
+        </div>
+      </div>
+      <div class="overview-strip">
+        <span class="overview-strip-label">Queue status</span>
         <div class="counts">
           <span class="count-item"><span class="dot dot-pending"></span>${pendingCount} pending</span>
           <span class="count-item"><span class="dot dot-approved"></span>${approvedCount} approved</span>
           <span class="count-item"><span class="dot dot-killed"></span>${killedCount} killed</span>
           ${rewriteCount > 0 ? `<span class="count-item"><span class="dot"></span>${rewriteCount} rewrite</span>` : ''}
         </div>
-        <span class="gate-note">Manual gate &middot; nothing posts automatically</span>
       </div>
-    </div>
-  </header>
+    </section>
 
-  <main class="container">
     ${content}
   </main>
 
