@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sgm-audio/blast/docs/progress-event.schema.json",
+  "title": "BLASTProgressEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "source",
+    "kind",
+    "repo",
+    "title",
+    "body",
+    "files",
+    "url",
+    "timestamp"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable id for this source event, used to prevent duplicate drafts."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["github", "vercel"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["commit", "pull_request", "deploy"]
+    },
+    "repo": {
+      "type": "string",
+      "minLength": 1,
+      "description": "owner/name"
+    },
+    "sha": {
+      "type": ["string", "null"]
+    },
+    "ref": {
+      "type": ["string", "null"],
+      "description": "Branch or git ref, if known."
+    },
+    "title": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "status"],
+        "properties": {
+          "path": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["added", "modified", "removed", "renamed"]
+          },
+          "additions": { "type": ["integer", "null"], "minimum": 0 },
+          "deletions": { "type": ["integer", "null"], "minimum": 0 }
+        }
+      }
+    },
+    "url": {
+      "type": "string",
+      "description": "Canonical web URL for the event."
+    },
+    "deployUrl": {
+      "type": ["string", "null"],
+      "description": "Live deployment URL, when the event is a Vercel deploy."
+    },
+    "environment": {
+      "type": ["string", "null"],
+      "description": "preview, production, or the named Vercel environment."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
