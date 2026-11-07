@@ -1,0 +1,30 @@
+{
+  "name": "blast",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BLAST — Building-in-Public Auto-Poster (3-layer skeleton)",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "handshake": "tsx scripts/handshake.ts",
+    "sync": "tsx src/pipeline/sync-and-draft.ts",
+    "review": "tsx src/review/server.ts",
+    "mcp": "tsx src/mcp/server.ts"
+  },
+  "dependencies": {
+    "@google/genai": "3.0.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@supabase/supabase-js": "2.119.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "dotenv": "18.0.9",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}
